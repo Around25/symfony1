@@ -359,7 +359,23 @@ class sfToolkit
    */
   public static function pregtr($search, $replacePairs)
   {
-    return preg_replace(array_keys($replacePairs), array_values($replacePairs), $search);
+//    return preg_replace(array_keys($replacePairs), array_values($replacePairs), $search);
+    // /e modifier is deprecated in php 5.5.0 and removed in php 7.0.0
+    // http://php.net/manual/ro/function.preg-replace.php
+    foreach ($replacePairs as $pattern => $replacement) {
+      if (preg_match('/(.*)e$/', $pattern, $matches)) {
+        $pattern = $matches[1];
+        $search = preg_replace_callback($pattern, function ($matches) use ($replacement) {
+          preg_match("/('::'\.)?([a-z]*)\('\\\\([0-9]{1})'\)/", $replacement, $match);
+
+          return ($match[1] == '' ? '' : '::') . call_user_func($match[2], $matches[$match[3]]);
+        }, $search);
+      } else {
+        $search = preg_replace($pattern, $replacement, $search);
+      }
+    }
+
+    return $search;
   }
 
   /**
